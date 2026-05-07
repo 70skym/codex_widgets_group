@@ -31,9 +31,12 @@ const allowedJournalNeedles = [
   "optics and lasers in engineering",
   "optics and laser technology",
   "optics and lasers technology",
+  "optics laser technology",
   "light science and applications",
+  "light science applications",
   "acs photonics",
   "laser and photonics reviews",
+  "laser photonics reviews",
   "advanced optical materials",
   "journal of lightwave technology",
   "ieee photonics technology letters",
@@ -59,6 +62,7 @@ let isSavingSaved = false;
 
 const statusEl = document.querySelector("#status");
 const queryEl = document.querySelector("#query");
+const yearFilterEl = document.querySelector("#year-filter");
 
 document.querySelector("#refresh").addEventListener("click", refreshAll);
 document.querySelector("#search").addEventListener("click", refreshSound);
@@ -70,6 +74,11 @@ document.querySelector("#pin").addEventListener("click", async () => {
 
 queryEl.addEventListener("keydown", (event) => {
   if (event.key === "Enter") refreshSound();
+});
+
+yearFilterEl.addEventListener("change", () => {
+  localStorage.setItem("topicSearchYear", yearFilterEl.value);
+  refreshSound();
 });
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -111,7 +120,9 @@ function parseRss(xmlText, source) {
       source,
       date: formatDate(dateText),
       authors: "",
-      abstract: description
+      abstract: description,
+      isOpenAccess: null,
+      oaStatus: ""
     };
   });
 }
@@ -123,24 +134,42 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-function crossrefUrl(query) {
+function selectedStartDate() {
+  const year = yearFilterEl.value || "2024";
+  return `${year}-01-01`;
+}
+
+function setupYearFilter() {
+  const currentYear = new Date().getFullYear();
+  const savedYear = localStorage.getItem("topicSearchYear") || "2024";
+  yearFilterEl.textContent = "";
+  for (let year = currentYear; year >= 2018; year -= 1) {
+    const option = document.createElement("option");
+    option.value = String(year);
+    option.textContent = String(year);
+    yearFilterEl.append(option);
+  }
+  yearFilterEl.value = savedYear;
+  if (yearFilterEl.value !== savedYear) yearFilterEl.value = "2024";
+}
+
+function crossrefUrl(query, startDate) {
   const params = new URLSearchParams({
     query,
-    rows: "60",
+    rows: "100",
     sort: "published",
     order: "desc",
-    filter: "type:journal-article,from-pub-date:2024-01-01",
+    filter: `type:journal-article,from-pub-date:${startDate}`,
     select: "DOI,title,author,published-print,published-online,container-title,URL,abstract"
   });
   return `https://api.crossref.org/works?${params.toString()}`;
 }
 
-function openAlexUrl(query, page = 1) {
+function openAlexUrl(query, startDate, page = 1) {
   const params = new URLSearchParams({
     search: query,
-    filter: "from_publication_date:2024-01-01,type:article",
-    sort: "publication_date:desc",
-    "per-page": "50",
+    filter: `from_publication_date:${startDate},type:article`,
+    "per-page": "100",
     page: String(page)
   });
   return `https://api.openalex.org/works?${params.toString()}`;
@@ -174,17 +203,7 @@ function splitQueries(value) {
 }
 
 function searchQueries(value) {
-  const expanded = new Set();
-  for (const query of splitQueries(value)) {
-    expanded.add(query);
-    expanded.add(query.replace(/\bholography\b/ig, "holographic"));
-    expanded.add(query.replace(/\bholographic\b/ig, "holography"));
-    expanded.add(query.replace(/\bholograph(?:y|ic)\b/ig, "holograph"));
-  }
-  return Array.from(expanded)
-    .map((query) => cleanText(query))
-    .filter(Boolean)
-    .slice(0, 8);
+  return splitQueries(value);
 }
 
 function stemToken(token) {
@@ -251,11 +270,14 @@ function normalizeCrossref(item) {
     source,
     date: crossrefDate(item),
     authors,
-    abstract: cleanText((item.abstract || "").replace(/<[^>]+>/g, ""))
+    abstract: cleanText((item.abstract || "").replace(/<[^>]+>/g, "")),
+    isOpenAccess: null,
+    oaStatus: ""
   };
 }
 
 function decodeOpenAlexAbstract(index = {}) {
+  if (!index || typeof index !== "object") return "";
   const entries = Object.entries(index);
   if (!entries.length) return "";
   const words = [];
@@ -267,6 +289,7 @@ function decodeOpenAlexAbstract(index = {}) {
 
 function normalizeOpenAlex(item) {
   const source = cleanText(item.primary_location?.source?.display_name || item.locations?.[0]?.source?.display_name || "Journal article");
+  const openAccess = item.open_access || {};
   const authors = (item.authorships || [])
     .slice(0, 5)
     .map((authorship) => cleanText(authorship.author?.display_name || ""))
@@ -279,26 +302,31 @@ function normalizeOpenAlex(item) {
     source,
     date: formatDate(item.publication_date || ""),
     authors,
-    abstract: decodeOpenAlexAbstract(item.abstract_inverted_index)
+    abstract: decodeOpenAlexAbstract(item.abstract_inverted_index),
+    isOpenAccess: Boolean(openAccess.is_oa),
+    oaStatus: cleanText(openAccess.oa_status || "")
   };
 }
 
-async function fetchOpenAlexPages(query, maxItems = 200) {
+async function fetchOpenAlexPages(query, startDate, maxItems = 500) {
   const items = [];
-  const pageSize = 50;
+  const pageSize = 100;
   const maxPages = Math.ceil(maxItems / pageSize);
   for (let page = 1; page <= maxPages; page += 1) {
-    const response = await fetchWithRetry(openAlexUrl(query, page), 1);
+    const response = await fetchWithRetry(openAlexUrl(query, startDate, page), 1);
     const results = JSON.parse(response.text).results || [];
-    items.push(...results.map(normalizeOpenAlex));
+    items.push(...results.map((item, index) => ({
+      ...normalizeOpenAlex(item),
+      openAlexRank: items.length + index
+    })));
     if (results.length < pageSize) break;
     await sleep(250);
   }
   return items.slice(0, maxItems);
 }
 
-async function fetchCrossrefItems(query) {
-  const response = await fetchWithRetry(crossrefUrl(query), 1);
+async function fetchCrossrefItems(query, startDate) {
+  const response = await fetchWithRetry(crossrefUrl(query, startDate), 1);
   return (JSON.parse(response.text).message?.items || []).map(normalizeCrossref);
 }
 
@@ -363,6 +391,14 @@ function renderList(target, papers, emptyText) {
   for (const paper of papers) {
     const node = template.content.firstElementChild.cloneNode(true);
     node.querySelector(".source").textContent = paper.source;
+    const oaBadge = node.querySelector(".oa-badge");
+    if (paper.isOpenAccess === null || paper.isOpenAccess === undefined) {
+      oaBadge.remove();
+    } else {
+      oaBadge.textContent = paper.isOpenAccess ? `OA${paper.oaStatus ? ` ${paper.oaStatus}` : ""}` : "Closed";
+      oaBadge.classList.toggle("closed", !paper.isOpenAccess);
+      oaBadge.title = paper.isOpenAccess ? "Open Access" : "Not marked as Open Access";
+    }
     node.querySelector(".date").textContent = paper.date;
     node.querySelector("h2").textContent = paper.title;
     node.querySelector(".authors").textContent = paper.authors || "Latest article feed";
@@ -395,50 +431,43 @@ async function refreshJournals() {
 async function refreshSound() {
   const queries = searchQueries(queryEl.value);
   const relevanceQueries = splitQueries(queryEl.value);
+  const startDate = selectedStartDate();
   state.soundMode = queryEl.value.trim() ? `Custom: ${queryEl.value.trim()}` : "Sound Field Imaging defaults";
   localStorage.setItem("soundMode", state.soundMode);
-  setStatus(`Searching ${state.soundMode}`);
+  setStatus(`Searching ${state.soundMode} from ${startDate.slice(0, 4)}`);
   const queryResults = [];
   let fetchedCount = 0;
+  let sourceErrors = 0;
   for (const [index, query] of queries.entries()) {
-    setStatus(`Searching ${index + 1}/${queries.length}: ${query}`);
+    setStatus(`Searching OpenAlex ${index + 1}/${queries.length}: ${query}`);
     try {
-      const openAlexItems = await fetchOpenAlexPages(query, 200);
+      const openAlexItems = await fetchOpenAlexPages(query, startDate, 800);
       fetchedCount += openAlexItems.length;
       queryResults.push(openAlexItems);
     } catch (error) {
+      sourceErrors += 1;
       console.warn(error);
-    }
-    await sleep(250);
-    try {
-      const crossrefItems = await fetchCrossrefItems(query);
-      fetchedCount += crossrefItems.length;
-      queryResults.push(crossrefItems);
-    } catch (fallbackError) {
-      console.warn(fallbackError);
     }
     if (index < queries.length - 1) await sleep(500);
   }
   setStatus("Filtering results");
   const seen = new Set();
   const allCandidates = queryResults.flat();
-  const journalCandidates = allCandidates.filter((paper) => isAllowedJournal(paper.source));
-  const relevantCandidates = journalCandidates
+  const relevantCandidates = allCandidates
     .map((paper) => ({ ...paper, relevance: relevanceScore(paper, relevanceQueries) }))
     .filter((paper) => {
-      if (!paper.title || !paper.link || seen.has(paper.id) || paper.relevance < 2.8) return false;
+      if (!paper.title || !paper.link || seen.has(paper.id)) return false;
       seen.add(paper.id);
       return true;
     });
   const papers = relevantCandidates
-    .sort((a, b) => b.relevance - a.relevance || new Date(b.date) - new Date(a.date))
+    .sort((a, b) => a.openAlexRank - b.openAlexRank)
     .slice(0, 80);
-  if (papers.length) {
-    state.sound = papers;
-    localStorage.setItem("soundPapers", JSON.stringify(state.sound));
-  }
-  state.soundMode = `${state.soundMode} | fetched ${fetchedCount}, journals ${journalCandidates.length}, matched ${relevantCandidates.length}`;
-  setStatus(papers.length ? `Found ${papers.length} matching papers` : `No matches | fetched ${fetchedCount}, journals ${journalCandidates.length}`);
+  state.sound = papers;
+  localStorage.setItem("soundPapers", JSON.stringify(state.sound));
+  const errorText = sourceErrors ? `, source errors ${sourceErrors}` : "";
+  state.soundMode = `${state.soundMode} | OpenAlex | from ${startDate.slice(0, 4)} | hits ${fetchedCount}, shown ${papers.length}${errorText}`;
+  setStatus(papers.length ? `Showing ${papers.length} OpenAlex papers` : `No OpenAlex papers | hits ${fetchedCount}${errorText}`);
   renderAll();
 }
 
@@ -464,6 +493,7 @@ async function refreshAll() {
 }
 
 async function init() {
+  setupYearFilter();
   await loadSaved({ migrateLocal: true });
   renderAll();
   refreshAll();

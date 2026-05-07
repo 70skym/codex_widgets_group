@@ -44,6 +44,10 @@
       </section>
 
       <section id="sound" class="panel">
+        <div class="topic-controls">
+          <label for="year-filter">From</label>
+          <select id="year-filter" title="Search start year"></select>
+        </div>
         <div id="sound-mode" class="mode-line"></div>
         <div id="sound-list" class="paper-list"></div>
       </section>
@@ -56,7 +60,10 @@
     <template id="paper-template">
       <article class="paper-card">
         <div class="paper-topline">
-          <span class="source"></span>
+          <span class="source-row">
+            <span class="source"></span>
+            <span class="oa-badge"></span>
+          </span>
           <span class="date"></span>
         </div>
         <h2></h2>
