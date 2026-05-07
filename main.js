@@ -1,11 +1,13 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, shell } = require("electron");
 const { spawn } = require("child_process");
+const fs = require("fs");
 const path = require("path");
 
 let win;
 let tray;
 
 const WIDGET_HTML = "src/index.html";
+const emptyArticleData = { version: 1, saved: [], updatedAt: null };
 
 function vivaldiPath() {
   const candidates = [
@@ -14,7 +16,7 @@ function vivaldiPath() {
     process.env.PROGRAMFILES && path.join(process.env.PROGRAMFILES, "Vivaldi", "Application", "vivaldi.exe"),
     process.env["PROGRAMFILES(X86)"] && path.join(process.env["PROGRAMFILES(X86)"], "Vivaldi", "Application", "vivaldi.exe")
   ].filter(Boolean);
-  return candidates.find((candidate) => require("fs").existsSync(candidate));
+  return candidates.find((candidate) => fs.existsSync(candidate));
 }
 
 async function openExternal(url) {
@@ -22,6 +24,45 @@ async function openExternal(url) {
   if (!browser) return shell.openExternal(url);
   const child = spawn(browser, [url], { detached: true, stdio: "ignore" });
   child.unref();
+}
+
+function articleDataPath() {
+  if (process.env.ARTICLE_FIELD_DATA_PATH) return process.env.ARTICLE_FIELD_DATA_PATH;
+  const syncRoot = process.env.OneDrive || process.env.OneDriveCommercial || process.env.OneDriveConsumer || app.getPath("documents");
+  return path.join(syncRoot, "FieldWidgets", "article-saved.json");
+}
+
+function normalizeArticleData(data) {
+  return {
+    ...emptyArticleData,
+    ...(data && typeof data === "object" ? data : {}),
+    saved: Array.isArray(data?.saved) ? data.saved : []
+  };
+}
+
+async function readArticleData() {
+  const file = articleDataPath();
+  await fs.promises.mkdir(path.dirname(file), { recursive: true });
+  try {
+    const text = await fs.promises.readFile(file, "utf8");
+    return { ...normalizeArticleData(JSON.parse(text)), path: file };
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    await writeArticleData(emptyArticleData);
+    return { ...emptyArticleData, path: file };
+  }
+}
+
+async function writeArticleData(data) {
+  const file = articleDataPath();
+  await fs.promises.mkdir(path.dirname(file), { recursive: true });
+  const payload = normalizeArticleData(data);
+  payload.version = 1;
+  payload.updatedAt = new Date().toISOString();
+  const temp = `${file}.tmp`;
+  await fs.promises.writeFile(temp, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await fs.promises.rename(temp, file);
+  return { ...payload, path: file };
 }
 
 function createWindow() {
@@ -123,6 +164,10 @@ ipcMain.handle("fetch-url", async (_event, url) => {
 ipcMain.handle("open-link", async (_event, url) => {
   await openExternal(url);
 });
+
+ipcMain.handle("article-read-data", async () => readArticleData());
+
+ipcMain.handle("article-write-data", async (_event, data) => writeArticleData(data));
 
 ipcMain.handle("window-action", (_event, action) => {
   if (!win) return;

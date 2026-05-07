@@ -44,6 +44,24 @@ setx TODO_FIELD_DATA_PATH "C:\Path\To\todo-data.json"
 
 The widget reloads the JSON file every 15 seconds, so changes made on another PC appear after OneDrive syncs the file. If two PCs edit at the exact same time, the most recent save wins.
 
+## Article Saved Sync
+
+Newest Article Field stores saved papers in:
+
+```text
+%OneDrive%\FieldWidgets\article-saved.json
+```
+
+The widget reloads the file every 15 seconds. To use a custom path, set:
+
+```powershell
+setx ARTICLE_FIELD_DATA_PATH "C:\Path\To\article-saved.json"
+```
+
+## Weather Location
+
+Weather Field checks the approximate current location at startup and then about once per hour. It uses IP-based location from `ipinfo.io`, so it is approximate rather than GPS-precise. The detected place is saved locally and used for Open-Meteo weather.
+
 ## Browser
 
 External links open in Vivaldi when it is installed in the standard Windows location. You can override the browser path by setting the `VIVALDI_PATH` environment variable to `vivaldi.exe`.

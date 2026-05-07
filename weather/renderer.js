@@ -15,6 +15,7 @@ if (storedVersion !== defaultVersion) {
 } else {
   currentPlace = JSON.parse(localStorage.getItem("weatherPlace") || "null") || defaultPlace;
 }
+let lastLocationCheck = Number(localStorage.getItem("weatherLastLocationCheck") || "0");
 
 let radarHost = "";
 let radarFrames = [];
@@ -65,9 +66,46 @@ function forecastUrl(place) {
   return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 }
 
+function locationUrl() {
+  return "https://ipinfo.io/json";
+}
+
 async function fetchJson(url) {
   const response = await window.weatherField.fetchUrl(url);
   return JSON.parse(response.text);
+}
+
+function placeFromIpInfo(data) {
+  const [latitude, longitude] = String(data.loc || "").split(",").map(Number);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return {
+    name: [data.city, data.region, data.country].filter(Boolean).join(", "),
+    latitude,
+    longitude,
+    timezone: data.timezone || "auto"
+  };
+}
+
+async function updateLocationIfNeeded({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && now - lastLocationCheck < 60 * 60 * 1000) return false;
+  try {
+    setStatus("Checking location");
+    const data = await fetchJson(locationUrl());
+    const nextPlace = placeFromIpInfo(data);
+    lastLocationCheck = now;
+    localStorage.setItem("weatherLastLocationCheck", String(lastLocationCheck));
+    if (!nextPlace) return false;
+    const moved = Math.abs(nextPlace.latitude - currentPlace.latitude) > 0.02 || Math.abs(nextPlace.longitude - currentPlace.longitude) > 0.02;
+    currentPlace = nextPlace;
+    localStorage.setItem("weatherPlace", JSON.stringify(currentPlace));
+    return moved;
+  } catch (error) {
+    console.warn(error);
+    lastLocationCheck = now;
+    localStorage.setItem("weatherLastLocationCheck", String(lastLocationCheck));
+    return false;
+  }
 }
 
 function weatherInfo(code) {
@@ -283,6 +321,7 @@ function onMapPointerUp(event) {
 async function refreshAll() {
   setStatus("Refreshing weather");
   try {
+    await updateLocationIfNeeded();
     const forecast = await fetchJson(forecastUrl(currentPlace));
     renderForecast(forecast);
     await renderRadar();
@@ -292,5 +331,6 @@ async function refreshAll() {
   }
 }
 
-refreshAll();
+updateLocationIfNeeded({ force: true }).finally(refreshAll);
 setInterval(refreshAll, 30 * 60 * 1000);
+setInterval(() => updateLocationIfNeeded({ force: true }).then(refreshAll), 60 * 60 * 1000);

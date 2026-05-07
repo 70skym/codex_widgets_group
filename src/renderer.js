@@ -52,8 +52,10 @@ const state = {
   journals: [],
   sound: JSON.parse(localStorage.getItem("soundPapers") || "[]"),
   soundMode: localStorage.getItem("soundMode") || "Sound Field Imaging defaults",
-  saved: JSON.parse(localStorage.getItem("savedPapers") || "[]")
+  saved: []
 };
+let articleDataPath = "";
+let isSavingSaved = false;
 
 const statusEl = document.querySelector("#status");
 const queryEl = document.querySelector("#query");
@@ -300,10 +302,45 @@ async function fetchCrossrefItems(query) {
   return (JSON.parse(response.text).message?.items || []).map(normalizeCrossref);
 }
 
-function savePaper(paper) {
+async function loadSaved({ migrateLocal = false } = {}) {
+  try {
+    const data = await window.paperWidget.readData();
+    articleDataPath = data.path || articleDataPath;
+    const remoteSaved = Array.isArray(data.saved) ? data.saved : [];
+    const legacySaved = migrateLocal ? JSON.parse(localStorage.getItem("savedPapers") || "[]") : [];
+    state.saved = remoteSaved.length ? remoteSaved : legacySaved;
+    if (!remoteSaved.length && legacySaved.length) await persistSaved();
+  } catch (error) {
+    console.warn(error);
+    state.saved = JSON.parse(localStorage.getItem("savedPapers") || "[]");
+  }
+}
+
+async function persistSaved() {
+  isSavingSaved = true;
+  try {
+    const data = await window.paperWidget.writeData({ saved: state.saved });
+    articleDataPath = data.path || articleDataPath;
+    localStorage.setItem("savedPapers", JSON.stringify(state.saved));
+  } catch (error) {
+    console.warn(error);
+    localStorage.setItem("savedPapers", JSON.stringify(state.saved));
+  } finally {
+    isSavingSaved = false;
+  }
+}
+
+async function refreshSavedFromDisk() {
+  if (isSavingSaved) return;
+  const before = JSON.stringify(state.saved);
+  await loadSaved();
+  if (JSON.stringify(state.saved) !== before) renderAll();
+}
+
+async function savePaper(paper) {
   const exists = state.saved.some((entry) => entry.id === paper.id);
   state.saved = exists ? state.saved.filter((entry) => entry.id !== paper.id) : [paper, ...state.saved].slice(0, 80);
-  localStorage.setItem("savedPapers", JSON.stringify(state.saved));
+  await persistSaved();
   renderAll();
 }
 
@@ -426,6 +463,12 @@ async function refreshAll() {
   }
 }
 
-renderAll();
-refreshAll();
+async function init() {
+  await loadSaved({ migrateLocal: true });
+  renderAll();
+  refreshAll();
+}
+
+init();
 setInterval(refreshAll, 60 * 60 * 1000);
+setInterval(refreshSavedFromDisk, 15 * 1000);
