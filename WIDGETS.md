@@ -60,7 +60,9 @@ setx ARTICLE_FIELD_DATA_PATH "C:\Path\To\article-saved.json"
 
 ## Weather Location
 
-Weather Field checks the approximate current location at startup and then about once per hour. It uses IP-based location from `ipinfo.io`, so it is approximate rather than GPS-precise. The detected place is saved locally and used for Open-Meteo weather.
+Weather Field starts with Kobe fixed by default. Use the `Kobe` / `Auto` button in the title bar to switch automatic location updates on or off.
+
+When automatic location is on, Weather Field checks the approximate current location at startup and then about once per hour. It uses IP-based location from `ipinfo.io`, so it is approximate rather than GPS-precise. The detected place is saved locally and used for Open-Meteo weather.
 
 ## Browser
 

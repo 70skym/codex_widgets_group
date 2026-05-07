@@ -16,6 +16,7 @@ if (storedVersion !== defaultVersion) {
   currentPlace = JSON.parse(localStorage.getItem("weatherPlace") || "null") || defaultPlace;
 }
 let lastLocationCheck = Number(localStorage.getItem("weatherLastLocationCheck") || "0");
+let autoLocation = localStorage.getItem("weatherAutoLocation") === "true";
 
 let radarHost = "";
 let radarFrames = [];
@@ -34,8 +35,22 @@ const mapState = {
 const statusEl = document.querySelector("#status");
 const radarSlider = document.querySelector("#radar-slider");
 const mapEl = document.querySelector("#map");
+const autoLocationEl = document.querySelector("#auto-location");
 
 document.querySelector("#refresh").addEventListener("click", refreshAll);
+autoLocationEl.addEventListener("click", async () => {
+  autoLocation = !autoLocation;
+  localStorage.setItem("weatherAutoLocation", String(autoLocation));
+  renderAutoLocation();
+  if (autoLocation) {
+    await updateLocationIfNeeded({ force: true });
+  } else {
+    currentPlace = defaultPlace;
+    localStorage.setItem("weatherPlace", JSON.stringify(currentPlace));
+    setStatus("Auto location off: Kobe fixed");
+  }
+  await refreshAll();
+});
 document.querySelector("#hide").addEventListener("click", () => window.weatherField.windowAction("close"));
 document.querySelector("#pin").addEventListener("click", async () => {
   const pinned = await window.weatherField.windowAction("toggle-pin");
@@ -51,6 +66,12 @@ mapEl.addEventListener("pointercancel", onMapPointerUp);
 
 function setStatus(text) {
   statusEl.textContent = text;
+}
+
+function renderAutoLocation() {
+  autoLocationEl.classList.toggle("active", autoLocation);
+  autoLocationEl.textContent = autoLocation ? "Auto" : "Kobe";
+  autoLocationEl.title = autoLocation ? "Auto location is on" : "Auto location is off; Kobe fixed";
 }
 
 function forecastUrl(place) {
@@ -87,6 +108,11 @@ function placeFromIpInfo(data) {
 }
 
 async function updateLocationIfNeeded({ force = false } = {}) {
+  if (!autoLocation) {
+    currentPlace = defaultPlace;
+    localStorage.setItem("weatherPlace", JSON.stringify(currentPlace));
+    return false;
+  }
   const now = Date.now();
   if (!force && now - lastLocationCheck < 60 * 60 * 1000) return false;
   try {
@@ -331,6 +357,7 @@ async function refreshAll() {
   }
 }
 
+renderAutoLocation();
 updateLocationIfNeeded({ force: true }).finally(refreshAll);
 setInterval(refreshAll, 30 * 60 * 1000);
 setInterval(() => updateLocationIfNeeded({ force: true }).then(refreshAll), 60 * 60 * 1000);

@@ -117,9 +117,17 @@ h1 {
 }
 
 .window-controls button {
-  width: 28px;
+  min-width: 28px;
   height: 28px;
   border-radius: 8px;
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+#auto-location.active {
+  border-color: rgba(101, 214, 173, 0.55);
+  color: var(--green);
+  background: rgba(101, 214, 173, 0.16);
 }
 
 .section-head button {
