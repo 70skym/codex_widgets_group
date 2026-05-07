@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resolution Field</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="widget">
+      <header class="titlebar">
+        <div class="drag-region">
+          <div class="mark"></div>
+          <div>
+            <h1>Resolution Field</h1>
+            <p id="status">Starting up</p>
+          </div>
+        </div>
+        <div class="window-controls">
+          <button id="refresh" title="Refresh">&#8635;</button>
+          <button id="pin" title="Toggle always on top">&#8982;</button>
+          <button id="hide" title="Hide">&times;</button>
+        </div>
+      </header>
+
+      <section class="current">
+        <div>
+          <span>Current</span>
+          <strong id="current-mode">--</strong>
+        </div>
+        <div>
+          <span>Remote</span>
+          <strong id="remote-state">--</strong>
+        </div>
+      </section>
+
+      <section class="controls">
+        <label for="mode-select">Resolution</label>
+        <select id="mode-select"></select>
+        <button id="apply">Apply</button>
+      </section>
+
+      <section class="preset-grid">
+        <button data-preset="1920x1080">1920x1080</button>
+        <button data-preset="2560x1440">2560x1440</button>
+        <button data-preset="3440x1440">3440x1440</button>
+        <button data-preset="3840x2160">3840x2160</button>
+      </section>
+
+      <section class="auto-row">
+        <label>
+          <input id="auto-remote" type="checkbox" />
+          <span>Auto apply when Chrome Remote Desktop is active</span>
+        </label>
+      </section>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>

@@ -7,7 +7,8 @@
   "scripts": {
     "start": "electron .",
     "weather": "electron weather/main.js",
-    "todo": "electron todo/main.js"
+    "todo": "electron todo/main.js",
+    "resolution": "electron resolution/main.js"
   },
   "devDependencies": {
     "electron": "^31.7.7"

@@ -31,5 +31,6 @@ Pop-Location
 New-WidgetShortcut "Newest Article Field" "start-newest-article-field.vbs"
 New-WidgetShortcut "Weather Field" "start-weather-field.vbs"
 New-WidgetShortcut "To Do Field" "start-todo-field.vbs"
+New-WidgetShortcut "Resolution Field" "start-resolution-field.vbs"
 
 Write-Host "Widgets installed. Use the desktop shortcuts to launch them."

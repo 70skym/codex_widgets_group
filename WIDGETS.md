@@ -5,6 +5,7 @@ This folder contains three Electron widgets:
 - Newest Article Field
 - To Do Field
 - Weather Field
+- Resolution Field
 
 ## Install On Another PC
 
@@ -67,3 +68,15 @@ When automatic location is on, Weather Field checks the approximate current loca
 ## Browser
 
 External links open in Vivaldi when it is installed in the standard Windows location. You can override the browser path by setting the `VIVALDI_PATH` environment variable to `vivaldi.exe`.
+
+## Resolution Field
+
+Resolution Field changes the Windows display resolution from a small desktop widget. It is intended for Chrome Remote Desktop workflows where the host PC should quickly switch to a resolution that matches the client PC.
+
+Run it with:
+
+```powershell
+npm.cmd run resolution
+```
+
+Chrome Remote Desktop does not expose the client PC resolution through a stable public API. Resolution Field therefore uses a selected remote preset and can automatically apply it while the Chrome Remote Desktop host process is active.
