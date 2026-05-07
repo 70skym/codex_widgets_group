@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To Do Field</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="widget">
+      <header class="titlebar">
+        <div class="drag-region">
+          <div class="mark"></div>
+          <div>
+            <h1>To Do Field</h1>
+            <p id="status">Ready</p>
+          </div>
+        </div>
+        <div class="window-controls">
+          <button id="calendar" class="calendar-button" title="Open Google Calendar" aria-label="Open Google Calendar">
+            <span class="calendar-logo">
+              <span class="calendar-top"></span>
+              <span class="calendar-date">31</span>
+            </span>
+          </button>
+          <button id="pin" title="Toggle always on top">&#8982;</button>
+          <button id="hide" title="Hide">&times;</button>
+        </div>
+      </header>
+
+      <section class="quick-add">
+        <input id="task-input" placeholder="Add a task" />
+        <button id="add-task" title="Add task">Add</button>
+      </section>
+
+      <nav class="tabs" aria-label="Task view">
+        <button class="tab active" data-view="day">Day</button>
+        <button class="tab" data-view="week">Week</button>
+        <button class="tab" data-view="month">Month</button>
+        <button class="tab" data-view="done">Done</button>
+        <button class="tab" data-view="overdue">Overdue</button>
+      </nav>
+
+      <section class="task-grid">
+        <section class="task-column">
+          <div class="section-head">
+            <span id="primary-title">Remaining</span>
+            <span id="remaining-count">0</span>
+          </div>
+          <div id="remaining-list" class="task-list"></div>
+        </section>
+
+        <section class="task-column summary-column">
+          <div class="section-head">
+            <span id="summary-title">Term Status</span>
+            <span id="done-count">0</span>
+          </div>
+          <div id="summary-list" class="task-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "paper-field-widget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop widget for Optica, Optics Express, and Sound Field Imaging papers.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "weather": "electron weather/main.js",
+    "todo": "electron todo/main.js"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7"
+  }
+}

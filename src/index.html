@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Newest Article Field</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="widget">
+      <header class="titlebar">
+        <div class="drag-region">
+          <div class="mark"></div>
+          <div>
+            <h1>Newest Article Field</h1>
+            <p id="status">Starting up</p>
+          </div>
+        </div>
+        <div class="window-controls">
+          <button id="refresh" title="Refresh">&#8635;</button>
+          <button id="pin" title="Toggle always on top">&#8982;</button>
+          <button id="hide" title="Hide">&times;</button>
+        </div>
+      </header>
+
+      <section class="search-strip">
+        <label for="query">Search</label>
+        <input id="query" placeholder="Custom keyword search" />
+        <button id="search" title="Search papers">Go</button>
+      </section>
+
+      <nav class="tabs" aria-label="Paper feeds">
+        <button class="tab active" data-tab="journals">Optica feeds</button>
+        <button class="tab" data-tab="sound">Topic Search</button>
+        <button class="tab" data-tab="saved">Saved</button>
+      </nav>
+
+      <section id="journals" class="panel active">
+        <div class="feed-heading">
+          <span>Optica</span>
+          <span>Optics Express</span>
+        </div>
+        <div id="journal-list" class="paper-list"></div>
+      </section>
+
+      <section id="sound" class="panel">
+        <div id="sound-mode" class="mode-line"></div>
+        <div id="sound-list" class="paper-list"></div>
+      </section>
+
+      <section id="saved" class="panel">
+        <div id="saved-list" class="paper-list"></div>
+      </section>
+    </main>
+
+    <template id="paper-template">
+      <article class="paper-card">
+        <div class="paper-topline">
+          <span class="source"></span>
+          <span class="date"></span>
+        </div>
+        <h2></h2>
+        <p class="authors"></p>
+        <p class="abstract"></p>
+        <div class="paper-actions">
+          <button class="open">Open</button>
+          <button class="save">Save</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>

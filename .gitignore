@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log*
+*.log
+.env
+.env.*
+todo-data.json
+*.tmp
+Thumbs.db
+desktop.ini

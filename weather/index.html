@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Field</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="widget">
+      <header class="titlebar">
+        <div class="drag-region">
+          <div class="mark"></div>
+          <div>
+            <h1>Weather Field</h1>
+            <p id="status">Starting up</p>
+          </div>
+        </div>
+        <div class="window-controls">
+          <button id="refresh" title="Refresh">&#8635;</button>
+          <button id="pin" title="Toggle always on top">&#8982;</button>
+          <button id="hide" title="Hide">&times;</button>
+        </div>
+      </header>
+
+      <section class="content-grid">
+        <section class="forecast-panel">
+          <div class="forecast-head">
+            <div>
+              <p id="place">Kobe</p>
+              <h2 id="current-temp">-- C</h2>
+            </div>
+            <div>
+              <span class="weather-chip" id="current-icon">--</span>
+              <p id="current-summary">Loading</p>
+            </div>
+          </div>
+          <div id="forecast" class="forecast-list"></div>
+        </section>
+
+        <section class="radar-panel">
+          <div class="section-head">
+            <span>Rain Radar</span>
+            <button id="radar-source">Source</button>
+          </div>
+          <div id="map" class="radar-map" aria-label="Japan rain radar"></div>
+          <div class="radar-controls">
+            <input id="radar-slider" type="range" min="0" max="0" value="0" />
+            <span id="radar-time">--:--</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
