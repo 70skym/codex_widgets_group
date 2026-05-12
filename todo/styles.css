@@ -302,6 +302,16 @@ h1 {
   color: var(--red);
 }
 
+.task-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.restore-action {
+  color: var(--green);
+  border-color: rgba(101, 214, 173, 0.42);
+}
+
 .task-card.done {
   opacity: 0.72;
 }

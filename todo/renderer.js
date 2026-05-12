@@ -170,6 +170,18 @@ function deleteTask(id) {
   render();
 }
 
+function restoreTask(id) {
+  const found = findTask(id);
+  if (!found) return;
+  found.task.periodKey = periodKey(found.scope);
+  found.task.overdue = false;
+  found.task.done = false;
+  found.task.doneAt = null;
+  save();
+  setStatus(`Restored to ${labels[found.scope]}`);
+  render();
+}
+
 function taskNode(task, scope) {
   const node = document.createElement("article");
   node.className = `task-card${task.overdue ? " overdue" : ""}${task.done ? " done" : ""}`;
@@ -179,11 +191,15 @@ function taskNode(task, scope) {
       <div class="task-title"></div>
       <div class="task-meta"><span class="scope-badge">${labels[scope]}</span> | ${task.done ? `Done ${task.doneAt}` : task.overdue ? `Overdue from ${task.periodKey}` : `Added ${task.createdAt}`}</div>
     </div>
-    <button class="task-action" title="Delete">&times;</button>
+    <div class="task-actions">
+      ${task.overdue && !task.done ? `<button class="task-action restore-action" title="Restore to ${labels[scope]}">R</button>` : ""}
+      <button class="task-action delete-action" title="Delete">&times;</button>
+    </div>
   `;
   node.querySelector(".task-title").textContent = task.title;
   node.querySelector(".check-dot").addEventListener("click", () => toggleTask(task.id));
-  node.querySelector(".task-action").addEventListener("click", () => deleteTask(task.id));
+  node.querySelector(".restore-action")?.addEventListener("click", () => restoreTask(task.id));
+  node.querySelector(".delete-action").addEventListener("click", () => deleteTask(task.id));
   return node;
 }
 
